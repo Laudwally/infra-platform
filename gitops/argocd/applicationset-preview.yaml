@@ -1,0 +1,38 @@
+# Creates one ArgoCD Application per open pull request against this repo,
+# deployed into its own `preview-pr-<number>` namespace and torn down
+# automatically when the PR closes.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: preview-environments
+  namespace: argocd
+spec:
+  generators:
+    - pullRequest:
+        github:
+          owner: Laudwally
+          repo: app-repo # replace with the application repo this platform deploys
+          labels:
+            - preview
+        requeueAfterSeconds: 60
+
+  template:
+    metadata:
+      name: "preview-pr-{{number}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/Laudwally/app-repo.git
+        targetRevision: "{{head_sha}}"
+        path: deploy/overlays/preview
+        kustomize:
+          namePrefix: "pr-{{number}}-"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "preview-pr-{{number}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

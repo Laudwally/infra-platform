@@ -1,0 +1,38 @@
+# Helm values for the `hashicorp/vault` chart, HA mode with the integrated
+# Raft storage backend (no external Consul dependency).
+#
+#   helm repo add hashicorp https://helm.releases.hashicorp.com
+#   helm install vault hashicorp/vault -n vault --create-namespace -f vault/values.yaml
+#
+# After install, Vault starts sealed — initialize and unseal it, then enable
+# the Kubernetes auth method (see README) before ExternalSecrets can read
+# from it.
+server:
+  ha:
+    enabled: true
+    replicas: 3
+    raft:
+      enabled: true
+      setNodeId: true
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  auditStorage:
+    enabled: true
+    size: 5Gi
+
+  dataStorage:
+    enabled: true
+    size: 10Gi
+
+ui:
+  enabled: true
+  serviceType: ClusterIP
+
+injector:
+  enabled: true

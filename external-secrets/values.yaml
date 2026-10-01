@@ -1,0 +1,23 @@
+# Helm values for the `external-secrets/external-secrets` chart.
+#
+#   helm repo add external-secrets https://charts.external-secrets.io
+#   helm install external-secrets external-secrets/external-secrets \
+#     -n external-secrets --create-namespace -f external-secrets/values.yaml
+
+installCRDs: true
+
+serviceAccount:
+  create: true
+  name: external-secrets
+  annotations:
+    # Bind this service account to an IRSA role if pulling from AWS Secrets
+    # Manager (e.g. the RDS-managed master password) instead of Vault.
+    # eks.amazonaws.com/role-arn: arn:aws:iam::<account-id>:role/external-secrets-irsa
+    {}
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 128Mi

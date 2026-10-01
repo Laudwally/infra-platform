@@ -1,0 +1,2 @@
+Place one ArgoCD Application manifest per service here, e.g. api.yaml, worker.yaml.
+The app-of-apps.yaml at gitops/apps/ watches this directory.

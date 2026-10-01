@@ -1,0 +1,82 @@
+name: Terraform CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir:
+          - modules/vpc
+          - modules/eks
+          - modules/rds
+          - modules/cost-dashboard
+          - environments/dev
+          - environments/prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.5"
+
+      - name: terraform init (no backend)
+        working-directory: ${{ matrix.dir }}
+        run: terraform init -backend=false
+
+      - name: terraform validate
+        working-directory: ${{ matrix.dir }}
+        run: terraform validate
+
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.5"
+      - run: terraform fmt -check -recursive
+
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: terraform-linters/setup-tflint@v4
+      - run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: tflint --recursive
+
+  # Runs a real `terraform plan` against AWS, authenticating via OIDC
+  # (no long-lived AWS keys in CI). Skipped entirely unless the repo
+  # variable AWS_ROLE_ARN is configured, so this workflow is green on a
+  # fork or a fresh clone with no AWS account attached.
+  plan:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && vars.AWS_ROLE_ARN != ''
+    needs: [validate, fmt]
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    strategy:
+      matrix:
+        dir: [environments/dev]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.5"
+      - name: terraform init
+        working-directory: ${{ matrix.dir }}
+        run: terraform init -backend-config=backend.hcl
+      - name: terraform plan
+        working-directory: ${{ matrix.dir }}
+        run: terraform plan -no-color -out=tfplan

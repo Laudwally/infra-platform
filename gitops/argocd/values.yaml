@@ -1,0 +1,43 @@
+# Helm values for the `argo/argo-cd` chart.
+# Install with:
+#   helm repo add argo https://argoproj.github.io/argo-helm
+#   helm install argocd argo/argo-cd -n argocd --create-namespace -f gitops/argocd/values.yaml
+
+server:
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internal
+    hosts:
+      - argocd.internal.example.com
+
+configs:
+  params:
+    server.insecure: false
+
+  cm:
+    # Required for the ApplicationSet PR generator to reach the GitHub API.
+    application.resourceTrackingMethod: annotation
+    timeout.reconciliation: 180s
+
+applicationSet:
+  enabled: true
+
+repoServer:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+controller:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1Gi

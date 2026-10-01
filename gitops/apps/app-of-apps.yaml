@@ -1,0 +1,22 @@
+# Root "app of apps": ArgoCD watches this Application, which in turn points
+# at a directory of other Application manifests (one per real service).
+# This is the one Application you register manually; everything else is
+# managed declaratively from here.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-of-apps
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Laudwally/infra-platform.git
+    targetRevision: main
+    path: gitops/apps/services
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
